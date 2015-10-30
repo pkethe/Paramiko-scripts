@@ -5,8 +5,8 @@ import time
 import sys
 
 # Specify Code Path
-codePath = '/users/pkethe/mnlr_cb/';
-dataPath = '/users/pkethe/mnlr_cb/data/';
+codePath = '/users/pkethe/test_build/';
+dataPath = '/users/pkethe/test_build/data/';
 localPath = '/Users/Pranav/Desktop/mnlr_data/'
 
 # Specify Number of MNLR nodes to SSH
@@ -30,7 +30,7 @@ mnlrTierAddress.append('2.2.2,2.3.1')       #node7
 mnlrTierAddress.append('2.3.2')             #node8
 mnlrTierAddress.append('2.3.3')             #node9
 mnlrTierAddress.append('3.1.1.1')           #node10
-mnlrTierAddress.append('3.1.1.2,3.1.2.1')           #node11
+mnlrTierAddress.append('3.1.1.2,3.1.2.1')   #node11
 mnlrTierAddress.append('3.2.1.1')           #node12
 mnlrTierAddress.append('3.2.2.1,3.3.1.1')   #node13
 mnlrTierAddress.append('3.3.2.1,3.3.3.1')   #node14
@@ -40,6 +40,7 @@ mnlrTierAddress.append('3.3.3.2')           #node15
 # Assign End Network Node IDS
 endNWNodeIDS =[11, 13];
 endNWIPS = ['10.1.4.2', '10.1.6.2'];
+endNWCIDR = ['24','24','24']
 endInterfaces =[];
 endNodeSSH = [];
 
@@ -50,23 +51,24 @@ for i in range (0, numOfMNLRNodes):
 
 # Connect to all MNLR Nodes and perform a cleanup
 hostNames=[]
+track = 0
 for i in range(0, numOfMNLRNodes):
     ssh[i].set_missing_host_key_policy(paramiko.AutoAddPolicy())
     hostNames.append('node'+ str(i+1) + '.' + topologyName + '.fct.emulab.net');
     sys.stdout.write("\rConnecting: %s" % hostNames[i])
     sys.stdout.flush();
-    ssh[i].connect(hostNames[i], port=22, username='pkethe', password='PWD');
+    ssh[i].connect(hostNames[i], port=22, username='pkethe', password='Rochester_90');
     sys.stdout.write("\rConnected: %s" % hostNames[i]);
     sys.stdout.flush();
 
     # first do cleanup, just incase if previous configurations exist
     stdin, stdout, stderr = ssh[i].exec_command('sudo pkill tshark');
-    stdin, stdout, stderr = ssh[i].exec_command('sudo pkill mnlr_start');
+    stdin, stdout, stderr = ssh[i].exec_command('sudo pkill hello');
+    stdin, stdout, stderr = ssh[i].exec_command('ps -ef | grep hello');
     stdin, stdout, stderr = ssh[i].exec_command('ps -ef | grep tshark');
-    stdin, stdout, stderr = ssh[i].exec_command('rm ' + dataPath + '*');
+    stdin, stdout, stderr = ssh[i].exec_command('rm -f' + dataPath + '*');
 
     print ''
-
 
 # Connect each MNLR Node, and run configurations
 for i in range(0, numOfMNLRNodes):
@@ -98,19 +100,28 @@ for i in range(0, numOfMNLRNodes):
     stdin, stdout, stderr = ssh[i].exec_command(tcmd);
 
     # build MNLR command
-    mcmd ='sudo '+ codePath+ 'mnlr_start';
-
-    # check if node is an end node
-    if (i + 1) in endNWNodeIDS:
-        mcmd += ' 1';
-    else:
-        mcmd += ' 0';
+    mcmd ='sudo '+ codePath+ 'hello';
 
     # append tierAddrs
     tiers = mnlrTierAddress[i].split(',');
 
-    for j in range (0, len(tiers)):
-        mcmd += ' ' + tiers[j];
+    temp1 = len(tiers)
+    if (temp1 > 0):
+        mcmd += ' -T';
+        for j in range (0, len(tiers)):
+            mcmd += ' ' + tiers[j];
+
+    # check if node is an end node
+    if (i + 1) in endNWNodeIDS:
+        mcmd += ' -N 0';
+        print track
+        print endNWIPS[track]
+        print endNWCIDR[track]
+        print endInterfaces[track]
+        mcmd += ' ' + endNWIPS[track] + ' ' + endNWCIDR[track] + ' ' + endInterfaces[track];
+        track +=1;
+    else:
+        mcmd += ' -N 1';
 
     mcmd += ' > /dev/null';
     print 'exec# '+ mcmd;
@@ -121,7 +132,7 @@ for i in range(0, numOfMNLRNodes):
 # Wait few seconds to stabilize
 sys.stdout.flush();
 sys.stdout.write("\rWaiting for all nodes to stabilize...")
-time.sleep(40);
+time.sleep(10);
 sys.stdout.flush();
 sys.stdout.write("\rDone.\n")
 
@@ -162,7 +173,7 @@ print('');
 
 # copy all remote .csv files to local folder.
 transport = paramiko.Transport((hostNames[0], 22));
-password = "PWD"
+password = "Rochester_90"
 username = 'pkethe'
 transport.connect(username=username, password=password)
 sftp = paramiko.SFTPClient.from_transport(transport);
