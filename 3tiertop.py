@@ -57,7 +57,7 @@ for i in range(0, numOfMNLRNodes):
     hostNames.append('node'+ str(i+1) + '.' + topologyName + '.fct.emulab.net');
     sys.stdout.write("\rConnecting: %s" % hostNames[i])
     sys.stdout.flush();
-    ssh[i].connect(hostNames[i], port=22, username='pkethe', password='Rochester_90');
+    ssh[i].connect(hostNames[i], port=22, username='pkethe', password='PWD');
     sys.stdout.write("\rConnected: %s" % hostNames[i]);
     sys.stdout.flush();
 
@@ -173,7 +173,7 @@ print('');
 
 # copy all remote .csv files to local folder.
 transport = paramiko.Transport((hostNames[0], 22));
-password = "Rochester_90"
+password = "PWD"
 username = 'pkethe'
 transport.connect(username=username, password=password)
 sftp = paramiko.SFTPClient.from_transport(transport);
